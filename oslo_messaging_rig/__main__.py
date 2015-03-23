@@ -37,11 +37,18 @@ def producer_test(message_cnt, message_size):
 
 
 def consumer_test(msg_count, message_size):
-    print("Consumer test not implemented yet.")
+    transport = _init_messaging()
+    message = test_message.Message(transport, size_kb=message_size)
+    consumer = probes.Consumer(message, max_messages=msg_count)
+    consumer.run()
+    print("Received: %(sent)s; Total time: %(total)s; Avg: %(average)s" %
+          {"sent": consumer.max_messages,
+           "total": consumer.execution_time,
+           "average": consumer.execution_time / consumer.max_messages})
 
 
 def main():
-    eventlet.monkey_patch()
+    eventlet.monkey_patch(time=False)
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--message_count", type=int, default=1000,

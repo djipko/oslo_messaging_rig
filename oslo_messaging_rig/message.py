@@ -8,6 +8,7 @@ import oslo_messaging
 class Message(object):
     MESSAGE_NAME = "oslo-rig-test-message"
     TOPIC = "oslo-rig-test-topic"
+    HOST = "oslo-rig-test-server"
 
     _KEY_LENGTH_SPAN = (2, 20)
     _VALUE_LENGTH_SPAN = (40, 200)
@@ -16,12 +17,16 @@ class Message(object):
         self.transport = oslo_transport
         self.size = size_kb * 1024
         self.reply = reply_needed
-        self.target = oslo_messaging.Target(topic=self.TOPIC)
         self.msg = self._generate_message()
 
     def get_client(self):
-        return oslo_messaging.RPCClient(self.transport,
-                                        self.target)
+        target = oslo_messaging.Target(topic=self.TOPIC)
+        return oslo_messaging.RPCClient(self.transport, target)
+
+    def get_server(self, endpoints):
+        target = oslo_messaging.Target(topic=self.TOPIC, server=self.HOST)
+        return oslo_messaging.get_rpc_server(self.transport, target,
+                                             endpoints, executor='eventlet')
 
     def __len__(self):
         """Actual size of the generated payload in bytes."""

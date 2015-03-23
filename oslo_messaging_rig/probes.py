@@ -15,8 +15,9 @@ class Producer(object):
         self.execution_time = None
 
     @utils.return_exception
-    def _producer_thread(self, msg):
-        ctxt = self.client.prepare()
+    def _producer_thread(self, msg, cast_to_host=False):
+        ctxt = self.client.prepare(
+            server=self.message.HOST if cast_to_host else None)
         # Oslo messaging client interface requires a context arg
         dummy_context = {"user": "test-user", "tenant": "test-tenant"}
         client_method = functools.partial(ctxt.cast, dummy_context)
@@ -36,37 +37,41 @@ class Producer(object):
             self._producer_thread,
             self.message.payloads(num=self.message_cnt)
         )
-        self.pool.waitall()
+        responses.pool.waitall()
         self.execution_time = time.time() - start
         self.process_responses(responses)
 
 
 def _NoopLock():
-    @contextlib.context_manager
+    @contextlib.contextmanager
     def _noop_context_mgr(*args, **kwargs):
         yield
 
     return _noop_context_mgr
 
 
-class Manager(object):
+class Consumer(object):
     def __init__(self, message, max_messages=1000, lock=None):
-        self.meassage = message
+        self.message = message
         self.max_messages = max_messages
+        self.server = self.message.get_server([self])
         self._start_time = self.execution_time = None
         self.message_cnt = 0
         self.lock = lock or _NoopLock()
 
     def run(self):
         self._start_time = time.time()
+        self.server.start()
+	self.server.wait()
 
     def stop(self):
         if self._start_time:
             self.execution_time = time.time() - self._start_time
+            self.server.stop()
 
     def __getattr__(self, name):
         def _worker_method(*args, **kwargs):
-            with self.lock:
+            with self.lock():
                 self.message_cnt += 1
                 if self.message_cnt >= self.max_messages:
                     self.stop()
