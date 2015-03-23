@@ -24,9 +24,9 @@ def _init_messaging():
     return transport
 
 
-def producer_test(message_cnt):
+def producer_test(message_cnt, message_size):
     transport = _init_messaging()
-    message = test_message.Message(transport)
+    message = test_message.Message(transport, size_kb=message_size)
     producer = probes.Producer(eventlet.greenpool.GreenPool,
                                message, message_cnt=message_cnt)
     producer.run()
@@ -36,7 +36,7 @@ def producer_test(message_cnt):
            "average": producer.execution_time / producer.message_cnt})
 
 
-def consumer_test(msg_count):
+def consumer_test(msg_count, message_size):
     print("Consumer test not implemented yet.")
 
 
@@ -46,6 +46,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--message_count", type=int, default=1000,
                         help="Number of messages to send/receive")
+    parser.add_argument("-s", "--message_size", type=int, default=10,
+                        help="Individual message size in kilobytes")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-p", "--producer", action="store_true",
                         help="Run as a message producer")
@@ -53,6 +55,6 @@ def main():
                         help="Run as a message consumer")
     args = parser.parse_args()
     test_method = consumer_test if args.consumer else producer_test
-    test_method(args.message_count)
+    test_method(args.message_count, args.message_size)
 
 main()
