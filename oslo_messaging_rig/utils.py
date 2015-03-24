@@ -1,5 +1,4 @@
 import functools
-import sys
 
 
 def lazymap(func, iterable):
@@ -10,6 +9,7 @@ def lazymap(func, iterable):
 class WrappedException(object):
     def __init__(self, exc):
         self.exc = exc
+
 
 def returned_exception(response):
     return isinstance(response, WrappedException)

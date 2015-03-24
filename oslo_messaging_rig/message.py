@@ -14,6 +14,12 @@ class Message(object):
     _VALUE_LENGTH_SPAN = (40, 200)
 
     def __init__(self, oslo_transport, size_kb=10, reply_needed=False):
+        """Message class that provides payloads, and also means of sending them
+
+        All the oslo-specific stuff is handled by this class (that may be more
+        configurable in the future). Testing probes should ask instances for a
+        client/server, and use it to generate payloads.
+        """
         self.transport = oslo_transport
         self.size = size_kb * 1024
         self.reply = reply_needed
@@ -33,6 +39,12 @@ class Message(object):
         return len("".join(itertools.chain(*self.msg.iteritems())))
 
     def _generate_message(self):
+        """Generate a message that looks like an OpenStack payload
+
+        We want to make these as close in structure as what you would get with
+        real Nova messages, so we try to keep keys shorter than values, and
+        make them of varying size.
+        """
         # 15% of the message should be arguments
         keys = ("".join(random.sample(string.ascii_letters,
                                       random.randint(*self._KEY_LENGTH_SPAN)))
@@ -44,6 +56,7 @@ class Message(object):
         return dict(zip(keys, values))
 
     def payloads(self, num=None):
+        """ Generate payloads - dicts of random pairs of strings"""
         for cnt in itertools.count(0):
             if num and cnt > num:
                 break

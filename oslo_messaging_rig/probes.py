@@ -11,8 +11,17 @@ LOG = logging.getLogger(__name__)
 
 class Producer(object):
     def __init__(self, pool_cls, message, workers=64, message_cnt=1000):
+        """General producer class that spawns workers from a pool.
+
+        This is meant to closely resemble how actual OpenStack services spawn
+        client threads. This is usually done as part of a previous
+        oslo-messaging RPC callback that dispatches to a thread from a pool
+        (this is what oslo-messaging executor does).
+
+        The pool_cls can be any pool of workers that supports imap
+        """
         self.workers = workers
-        self.pool = pool_cls(size=workers)
+        self.pool = pool_cls(workers)
         self.message = message
         self.client = message.get_client()
         self.message_cnt = message_cnt
@@ -36,6 +45,11 @@ class Producer(object):
                 raise response.exc
 
     def run(self):
+        """Generate payloads from the Message instance and send them.
+
+        Spawn workers from a pool per message, trying to simulate how an
+        actual OpenStack service works as closely as possible.
+        """
         start = time.time()
         LOG.info("Starting sending %(count)s messages of %(size)s bytes" %
                  {'count': self.message_cnt, 'size': len(self.message)})
@@ -43,10 +57,10 @@ class Producer(object):
             self._producer_thread,
             self.message.payloads(num=self.message_cnt)
         )
-        responses.pool.waitall()
         self.process_responses(responses)
-        # NOTE: for some reason pool.waitall does not block so we want to
-        # record the time after processing the events which is not as accurate
+        # NOTE: for some reason eventlet.GreenPool.waitall does not block so
+        # we want to record the time after processing the events which is not
+        # as accurate
         self.execution_time = time.time() - start
 
 
@@ -60,6 +74,12 @@ def _NoopLock():
 
 class Consumer(object):
     def __init__(self, message, max_messages=1000, lock=None):
+        """Base consumer class, not tied to the underlying executor.
+
+        This closely resembles how an actual OpenStack service uses
+        oslo_messaging as a server. The instance keeps track of the number
+        of messages received and total time, but not much else.
+        """
         self.message = message
         self.max_messages = max_messages
         self.server = self.message.get_server([self])
@@ -68,6 +88,10 @@ class Consumer(object):
         self.lock = lock or _NoopLock()
 
     def run(self):
+        """Start an oslo-messaging server.
+
+        The server has callbacks mapped to this instance based on the message.
+        """
         self._start_time = time.time()
         LOG.info("Starting oslo.messaging server waiting for %(count)s "
                  "messages" % {'count': self.max_messages})
@@ -75,6 +99,7 @@ class Consumer(object):
         self.server.wait()
 
     def stop(self):
+        """Stop the oslo-messaging server."""
         if self._start_time:
             self.execution_time = time.time() - self._start_time
             self.server.stop()
