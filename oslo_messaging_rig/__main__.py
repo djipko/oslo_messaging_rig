@@ -12,6 +12,9 @@ from oslo_messaging_rig import message as test_message
 CONF = cfg.CONF
 
 
+TRANSPORT = None
+
+
 LOG = None
 
 
@@ -22,11 +25,11 @@ TRANSPORT_ALIASES = {
 
 
 def _init_messaging():
+    global TRANSPORT
     oslo_messaging.set_transport_defaults("oslo-testing-rig")
     # Get the config-files from nova directory - may become configurable later
     CONF([], project="nova")
-    transport = oslo_messaging.get_transport(CONF, aliases=TRANSPORT_ALIASES)
-    return transport
+    TRANSPORT = oslo_messaging.get_transport(CONF, aliases=TRANSPORT_ALIASES)
 
 def _setup_logging(debug=False):
     global LOG
@@ -35,8 +38,8 @@ def _setup_logging(debug=False):
     LOG = logging.getLogger(__name__)
 
 def producer_test(message_cnt, message_size, worker_count=64):
-    transport = _init_messaging()
-    message = test_message.Message(transport, size_kb=message_size)
+    global TRANSPORT
+    message = test_message.Message(TRANSPORT, size_kb=message_size)
     producer = probes.Producer(eventlet.greenpool.GreenPool,
                                message, workers=worker_count,
                                message_cnt=message_cnt)
@@ -48,8 +51,8 @@ def producer_test(message_cnt, message_size, worker_count=64):
 
 
 def consumer_test(msg_count, message_size, **kwargs):
-    transport = _init_messaging()
-    message = test_message.Message(transport, size_kb=message_size)
+    global TRANSPORT
+    message = test_message.Message(TRANSPORT, size_kb=message_size)
     consumer = probes.Consumer(message, max_messages=msg_count)
     consumer.run()
     LOG.info("Received: %(sent)s; Total time: %(total)s; Avg: %(average)s" %
@@ -76,7 +79,10 @@ def main():
     group.add_argument("-c", "--consumer", action="store_true",
                         help="Run as a message consumer")
     args = parser.parse_args()
+
     _setup_logging(args.debug)
+    _init_messaging()
+
     test_method = consumer_test if args.consumer else producer_test
     test_method(args.message_count, args.message_size,
                 worker_count=args.worker_count)
