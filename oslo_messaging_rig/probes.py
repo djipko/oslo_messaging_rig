@@ -6,7 +6,7 @@ from oslo_messaging_rig import utils
 
 
 class Producer(object):
-    def __init__(self, pool_cls, message, workers=100, message_cnt=1000):
+    def __init__(self, pool_cls, message, workers=64, message_cnt=1000):
         self.workers = workers
         self.pool = pool_cls(size=workers)
         self.message = message
@@ -62,7 +62,7 @@ class Consumer(object):
     def run(self):
         self._start_time = time.time()
         self.server.start()
-	self.server.wait()
+        self.server.wait()
 
     def stop(self):
         if self._start_time:

@@ -24,11 +24,12 @@ def _init_messaging():
     return transport
 
 
-def producer_test(message_cnt, message_size):
+def producer_test(message_cnt, message_size, worker_count=64):
     transport = _init_messaging()
     message = test_message.Message(transport, size_kb=message_size)
     producer = probes.Producer(eventlet.greenpool.GreenPool,
-                               message, message_cnt=message_cnt)
+                               message, workers=worker_count,
+                               message_cnt=message_cnt)
     producer.run()
     print("Sent: %(sent)s; Total time: %(total)s; Avg: %(average)s" %
           {"sent": producer.message_cnt,
@@ -36,7 +37,7 @@ def producer_test(message_cnt, message_size):
            "average": producer.execution_time / producer.message_cnt})
 
 
-def consumer_test(msg_count, message_size):
+def consumer_test(msg_count, message_size, **kwargs):
     transport = _init_messaging()
     message = test_message.Message(transport, size_kb=message_size)
     consumer = probes.Consumer(message, max_messages=msg_count)
@@ -55,6 +56,8 @@ def main():
                         help="Number of messages to send/receive")
     parser.add_argument("-s", "--message_size", type=int, default=10,
                         help="Individual message size in kilobytes")
+    parser.add_argument("-w", "--worker_count", type=int, default=64,
+                        help="Number of producer workers")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-p", "--producer", action="store_true",
                         help="Run as a message producer")
@@ -62,6 +65,7 @@ def main():
                         help="Run as a message consumer")
     args = parser.parse_args()
     test_method = consumer_test if args.consumer else producer_test
-    test_method(args.message_count, args.message_size)
+    test_method(args.message_count, args.message_size,
+                worker_count=args.worker_count)
 
 main()
