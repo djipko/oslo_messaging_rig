@@ -1,4 +1,6 @@
 import argparse
+import logging
+
 import eventlet
 from oslo_config import cfg
 import oslo_messaging
@@ -8,6 +10,9 @@ from oslo_messaging_rig import message as test_message
 
 
 CONF = cfg.CONF
+
+
+LOG = None
 
 
 TRANSPORT_ALIASES = {
@@ -23,6 +28,11 @@ def _init_messaging():
     transport = oslo_messaging.get_transport(CONF, aliases=TRANSPORT_ALIASES)
     return transport
 
+def _setup_logging(debug=False):
+    global LOG
+    level = logging.DEBUG if debug else logging.INFO
+    logging.basicConfig(level=level)
+    LOG = logging.getLogger(__name__)
 
 def producer_test(message_cnt, message_size, worker_count=64):
     transport = _init_messaging()
@@ -31,10 +41,10 @@ def producer_test(message_cnt, message_size, worker_count=64):
                                message, workers=worker_count,
                                message_cnt=message_cnt)
     producer.run()
-    print("Sent: %(sent)s; Total time: %(total)s; Avg: %(average)s" %
-          {"sent": producer.message_cnt,
-           "total": producer.execution_time,
-           "average": producer.execution_time / producer.message_cnt})
+    LOG.info("Sent: %(sent)s; Total time: %(total)s; Avg: %(average)s" %
+             {"sent": producer.message_cnt,
+              "total": producer.execution_time,
+              "average": producer.execution_time / producer.message_cnt})
 
 
 def consumer_test(msg_count, message_size, **kwargs):
@@ -42,16 +52,18 @@ def consumer_test(msg_count, message_size, **kwargs):
     message = test_message.Message(transport, size_kb=message_size)
     consumer = probes.Consumer(message, max_messages=msg_count)
     consumer.run()
-    print("Received: %(sent)s; Total time: %(total)s; Avg: %(average)s" %
-          {"sent": consumer.max_messages,
-           "total": consumer.execution_time,
-           "average": consumer.execution_time / consumer.max_messages})
+    LOG.info("Received: %(sent)s; Total time: %(total)s; Avg: %(average)s" %
+             {"sent": consumer.max_messages,
+              "total": consumer.execution_time,
+              "average": consumer.execution_time / consumer.max_messages})
 
 
 def main():
     eventlet.monkey_patch(time=False)
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("-d", "--debug", action="store_true",
+                        help="Show debug output")
     parser.add_argument("-m", "--message_count", type=int, default=1000,
                         help="Number of messages to send/receive")
     parser.add_argument("-s", "--message_size", type=int, default=10,
@@ -64,6 +76,7 @@ def main():
     group.add_argument("-c", "--consumer", action="store_true",
                         help="Run as a message consumer")
     args = parser.parse_args()
+    _setup_logging(args.debug)
     test_method = consumer_test if args.consumer else producer_test
     test_method(args.message_count, args.message_size,
                 worker_count=args.worker_count)
