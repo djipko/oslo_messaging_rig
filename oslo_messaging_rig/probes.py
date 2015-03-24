@@ -1,8 +1,12 @@
 import contextlib
 import functools
+import logging
 import time
 
 from oslo_messaging_rig import utils
+
+
+LOG = logging.getLogger(__name__)
 
 
 class Producer(object):
@@ -33,6 +37,8 @@ class Producer(object):
 
     def run(self):
         start = time.time()
+        LOG.info("Starting sending %(count)s messages of %(size)s bytes" %
+                 {'count': self.message_cnt, 'size': len(self.message)})
         responses = self.pool.imap(
             self._producer_thread,
             self.message.payloads(num=self.message_cnt)
@@ -61,6 +67,8 @@ class Consumer(object):
 
     def run(self):
         self._start_time = time.time()
+        LOG.info("Starting oslo.messaging server waiting for %(count)s "
+                 "messages" % {'count': self.max_messages})
         self.server.start()
         self.server.wait()
 

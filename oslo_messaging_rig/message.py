@@ -30,7 +30,7 @@ class Message(object):
 
     def __len__(self):
         """Actual size of the generated payload in bytes."""
-        return len(itertools.chain(self.msg.iteritems()))
+        return len("".join(itertools.chain(*self.msg.iteritems())))
 
     def _generate_message(self):
         # 15% of the message should be arguments
