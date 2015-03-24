@@ -44,8 +44,10 @@ class Producer(object):
             self.message.payloads(num=self.message_cnt)
         )
         responses.pool.waitall()
-        self.execution_time = time.time() - start
         self.process_responses(responses)
+        # NOTE: for some reason pool.waitall does not block so we want to
+        # record the time after processing the events which is not as accurate
+        self.execution_time = time.time() - start
 
 
 def _NoopLock():
