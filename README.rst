@@ -25,18 +25,18 @@ tells us more about it:
     $ python oslo_messaging_rig --help
     usage: oslo_messaging_rig [-h] [-d] [-m MESSAGE_COUNT] [-s MESSAGE_SIZE]
                               [-w WORKER_COUNT] [-p | -c]
-
+    
     optional arguments:
       -h, --help            show this help message and exit
-      -d, --debug           Show debug output
+      -d, --debug           show debug output
       -m MESSAGE_COUNT, --message_count MESSAGE_COUNT
-                            Number of messages to send/receive
+                            number of messages to send/receive
       -s MESSAGE_SIZE, --message_size MESSAGE_SIZE
-                            Individual message size in kilobytes
+                            individual message size in kilobytes
       -w WORKER_COUNT, --worker_count WORKER_COUNT
-                            Number of producer workers
-      -p, --producer        Run as a message producer
-      -c, --consumer        Run as a message consumer
+                            number of producer workers
+      -p, --producer        run as a message producer
+      -c, --consumer        run as a message consumer
 
 When run in producer mode, it will try to emulate how an actual OpenStack service uses
 oslo-messaging to send RPC messages (single process with multiple green threads competing
@@ -55,7 +55,7 @@ it on any of your OpenStack servers should work.
 Examples
 --------
 
-* Run a consumer that will send 20k 10kb messages as fast as it can.
+* Run a producer that will send 20k 10kb messages as fast as it can.
 
 .. code-block:: bash
 

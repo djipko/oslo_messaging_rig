@@ -66,18 +66,18 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--debug", action="store_true",
-                        help="Show debug output")
+                        help="show debug output")
     parser.add_argument("-m", "--message_count", type=int, default=1000,
-                        help="Number of messages to send/receive")
+                        help="number of messages to send/receive")
     parser.add_argument("-s", "--message_size", type=int, default=10,
-                        help="Individual message size in kilobytes")
+                        help="individual message size in kilobytes")
     parser.add_argument("-w", "--worker_count", type=int, default=64,
-                        help="Number of producer workers")
+                        help="number of producer workers")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-p", "--producer", action="store_true",
-                        help="Run as a message producer")
+                        help="run as a message producer")
     group.add_argument("-c", "--consumer", action="store_true",
-                        help="Run as a message consumer")
+                        help="run as a message consumer")
     args = parser.parse_args()
 
     _setup_logging(args.debug)
